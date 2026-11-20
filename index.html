@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Reçus 4.3</title>
+<title>Reçus 4.4</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Reçus">
@@ -176,6 +176,8 @@
   .btn-envoyer:active { opacity:.8; }
   .case-auto { display:flex; align-items:center; gap:8px; margin-top:12px; font-size:12px; color:var(--texte); text-align:left; }
   .case-auto input { width:auto; }
+  .version { max-width:350px; margin:10px auto 0; text-align:center; font-size:11px; color:#999; }
+  body.capture .version { display:none; }
 </style>
 </head>
 <body>
@@ -314,6 +316,8 @@
     <div id="ligneAdresse2"></div>
   </div>
 </div>
+
+<div class="version">Version 4.4</div>
 
 <script>
 /* ================= DONNÉES ================= */
@@ -1072,6 +1076,14 @@ function majBoutonEnvoyer(){
 ['rNum', 'rClient'].forEach(id => document.getElementById(id).addEventListener('input', majBoutonEnvoyer));
 
 /* ================= INIT ================= */
+/* Migration 4.3 : avant, le partage s'ouvrait seul après chaque reçu. Remis à « non » une seule fois. */
+try {
+  if (!localStorage.getItem('smsll4_v43')){
+    prat.autoPartage = false;
+    sauver();
+    localStorage.setItem('smsll4_v43', '1');
+  }
+} catch (e) {}
 afficherImages();
 afficherClients();
 afficherHisto();
