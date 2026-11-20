@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Reçus 4.2</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Reçus">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#4A90E2">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<style>
+  :root { --bleu:#4A90E2; --texte:#333; }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  body { font-family:Arial, sans-serif; font-size:13px; color:var(--texte); background:#f5f6f8; padding:12px; }
+
+  /* ===== PANNEAU DE CONTRÔLE ===== */
+  .ui { max-width:350px; margin:0 auto 10px; }
+  .barre { display:flex; gap:6px; }
+  .barre input {
+    flex:1; padding:11px 12px; border:1px solid #ccd3dc; border-radius:8px;
+    font-family:Arial; font-size:14px; background:#fff; color:var(--texte);
+  }
+  .barre input:focus { outline:none; border-color:var(--bleu); }
+  .barre button {
+    padding:11px 16px; border:none; border-radius:8px; background:var(--bleu);
+    color:#fff; font-family:Arial; font-size:14px; font-weight:bold;
+  }
+  .rangee { display:flex; gap:5px; margin-top:6px; }
+  .rangee button {
+    flex:1; padding:9px 2px; border:1px solid #ccd3dc; border-radius:8px;
+    background:#fff; color:var(--texte); font-family:Arial; font-size:11px; white-space:nowrap;
+  }
+  .rangee button:active { background:#eef4fc; }
+  .msg { margin-top:6px; font-size:12px; color:#666; text-align:center; min-height:15px; }
+  .msg.err { color:#c0392b; }
+  .msg.ok  { color:#2e7d32; }
+
+  /* Choix doublon */
+  #choix { display:none; margin-top:6px; background:#fff8e6; border:1px solid #f0d590; border-radius:8px; padding:10px; text-align:center; }
+  #choix.visible { display:block; }
+  #choix .q { font-size:12px; margin-bottom:8px; }
+  #choix .boutons { display:flex; gap:6px; }
+  #choix .boutons button {
+    flex:1; padding:9px 4px; border-radius:8px; font-family:Arial; font-size:12px; border:1px solid #ccd3dc; background:#fff;
+  }
+  #choix .boutons .principal { background:var(--bleu); color:#fff; border:none; font-weight:bold; }
+
+  .panel-client { display:none; margin-top:6px; background:#eef4fc; border:1px solid var(--bleu); border-radius:8px; padding:10px; }
+  .panel-client.visible { display:block; }
+  .panel-client-texte { font-size:12px; color:var(--texte); margin-bottom:8px; text-align:center; }
+  .panel-client-boutons { display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
+  .choix-client-bouton {
+    padding:10px 12px; border-radius:8px; border:1px solid var(--bleu); background:#fff;
+    color:var(--bleu); font-family:Arial; font-size:13px; font-weight:bold; text-align:left;
+  }
+  .choix-client-bouton:active { background:var(--bleu); color:#fff; }
+  .panel-client-annuler {
+    width:100%; padding:9px; border-radius:8px; border:1px solid #ccd3dc;
+    background:#fff; color:var(--texte); font-family:Arial; font-size:12px;
+  }
+
+  /* Sections repliables */
+  .section { display:none; margin-top:8px; background:#fff; border:1px solid #ccd3dc; border-radius:8px; padding:10px; }
+  .section.visible { display:block; }
+  .section h3 { font-size:12px; color:var(--bleu); margin-bottom:8px; text-transform:uppercase; letter-spacing:.5px; }
+  .section .ligne {
+    display:flex; justify-content:space-between; align-items:center; gap:6px;
+    padding:7px 2px; border-bottom:1px solid #f0f0f0; font-size:12px;
+  }
+  .section .ligne:last-child { border-bottom:none; }
+  .section .ligne .info { flex:1; text-align:left; }
+  .section .ligne .sub { color:#999; font-size:11px; }
+  .btn-suppr {
+    border:1px solid #e5c1bc; background:#fff; color:#c0392b;
+    font-size:12px; padding:6px 10px; border-radius:6px; font-family:Arial;
+  }
+  .btn-suppr.confirm { background:#c0392b; color:#fff; border-color:#c0392b; font-weight:bold; }
+  .btn-charger {
+    border:1px solid #ccd3dc; background:#fff; color:var(--bleu);
+    font-size:12px; padding:6px 10px; border-radius:6px; font-family:Arial;
+  }
+  .section .fichier { font-size:12px; margin-bottom:6px; }
+  .section input[type=file] { font-size:11px; width:100%; }
+  .vide { color:#999; font-size:12px; text-align:center; padding:8px 0; }
+  .guide { text-align:left; font-size:11px; color:#555; line-height:1.7; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid #f0f0f0; }
+  .guide b { color:var(--texte); }
+  .guide .g-titre { color:var(--bleu); font-weight:bold; text-transform:uppercase; font-size:10px; letter-spacing:.5px; margin-top:8px; }
+  .guide .g-titre:first-child { margin-top:0; }
+
+  /* Réglages */
+  #sec-reglages label { display:block; font-size:11px; color:#666; margin:8px 0 3px; text-align:left; }
+  #sec-reglages input[type=text], #sec-reglages input[type=number] {
+    width:100%; padding:9px 10px; border:1px solid #ccd3dc; border-radius:8px;
+    font-family:Arial; font-size:13px; color:var(--texte);
+  }
+  #sec-reglages input:focus { outline:none; border-color:var(--bleu); }
+  #sec-reglages .enregistrer {
+    width:100%; margin-top:12px; padding:11px; border:none; border-radius:8px;
+    background:var(--bleu); color:#fff; font-family:Arial; font-size:13px; font-weight:bold;
+  }
+  .sousTitre { font-size:12px; color:var(--bleu); text-transform:uppercase; letter-spacing:.5px; margin:16px 0 8px; padding-top:12px; border-top:1px solid #f0f0f0; }
+  .note-transfert { font-size:11px; color:#777; margin-bottom:8px; line-height:1.5; }
+  #zoneTransfert {
+    width:100%; padding:9px 10px; border:1px solid #ccd3dc; border-radius:8px;
+    font-family:Arial; font-size:11px; color:var(--texte); resize:vertical;
+  }
+  #zoneTransfert:focus { outline:none; border-color:var(--bleu); }
+  .btn-secondaire {
+    width:100%; margin-top:8px; padding:10px; border:1px solid #ccd3dc; border-radius:8px;
+    background:#fff; color:var(--bleu); font-family:Arial; font-size:12px; font-weight:bold;
+  }
+  .btn-2 { display:flex; gap:6px; margin-top:8px; }
+  .btn-2 button { flex:1; padding:10px 4px; border-radius:8px; font-family:Arial; font-size:12px; font-weight:bold; }
+  .btn-2 .imp { border:1px solid #ccd3dc; background:#fff; color:var(--bleu); }
+  .btn-2 .imp.confirm { background:var(--bleu); color:#fff; border:none; }
+  .btn-2 .reset { border:1px solid #e5c1bc; background:#fff; color:#c0392b; }
+  .btn-2 .reset.confirm { background:#c0392b; color:#fff; border:none; }
+  .panel-alerte {
+    display:none; margin-top:10px; background:#fdf0ee; border:1.5px solid #c0392b;
+    border-radius:8px; padding:12px;
+  }
+  .panel-alerte.visible { display:block; }
+  .panel-titre { font-size:13px; font-weight:bold; color:#c0392b; margin-bottom:6px; }
+  .panel-texte { font-size:11px; color:#555; line-height:1.5; margin-bottom:10px; }
+  .panel-boutons { display:flex; gap:8px; }
+  .panel-boutons button { flex:1; padding:10px 4px; border-radius:8px; font-family:Arial; font-size:12px; font-weight:bold; }
+  .panel-annuler { border:1px solid #ccd3dc; background:#fff; color:var(--texte); }
+  .panel-confirmer { border:none; background:#c0392b; color:#fff; }
+
+  /* ===== REÇU ===== */
+  #recu {
+    max-width:350px; margin:0 auto; background:#fff; padding:28px 20px 24px;
+    text-align:center; border-radius:2px;
+  }
+  #recu img.logo { width:65px; height:auto; margin-bottom:22px; }
+  #recu .champ { font-size:13px; margin:7px 0; line-height:1.5; }
+  #recu .remplace { font-size:12px; font-style:italic; margin:7px 0; display:none; }
+  #recu .remplace.visible { display:block; }
+  #recu [contenteditable] { outline:none; border-radius:3px; min-width:20px; display:inline-block; }
+  body:not(.capture) #recu [contenteditable]:focus { background:#eef4fc; box-shadow:0 0 0 2px var(--bleu); }
+  #recu .obs { font-size:12px; color:var(--texte); margin-top:10px; min-height:14px; }
+  #recu .corps { position:relative; }
+  #recu .zone-signature { position:relative; }
+  #recu .tampon {
+    position:absolute; right:6px; top:50%; transform:translateY(-50%) rotate(-14deg);
+    border:2.5px solid var(--bleu); color:var(--bleu); border-radius:6px;
+    padding:3px 10px; font-size:15px; font-weight:bold; letter-spacing:3px;
+    opacity:.8; pointer-events:none;
+  }
+  #recu img.sig { width:150px; height:auto; margin:24px 0 4px; }
+  #recu .praticien { margin-top:14px; }
+  #recu .praticien .nom { font-weight:bold; font-size:14px; margin-bottom:4px; }
+  #recu .praticien div { font-size:13px; line-height:1.6; }
+  .placeholder {
+    display:inline-block; padding:14px 10px; border:1px dashed #ccd3dc; border-radius:6px;
+    color:#999; font-size:11px; margin-bottom:16px;
+  }
+
+  /* ===== MODE CAPTURE ===== */
+  body.capture { background:#fff; padding:0; }
+  body.capture .ui { display:none; }
+  body.capture #recu { padding-top:60px; }
+
+  @media (max-width:480px) {
+    body { font-size:12px; }
+    #recu .champ { font-size:12px; }
+    #recu img.logo { width:60px; }
+  }
+  .btn-envoyer {
+    display:block; width:100%; margin-top:6px; padding:12px; border:none; border-radius:8px;
+    background:var(--bleu); color:#fff; font-family:Arial; font-size:14px; font-weight:bold;
+  }
+  .btn-envoyer:active { opacity:.8; }
+  .case-auto { display:flex; align-items:center; gap:8px; margin-top:12px; font-size:12px; color:var(--texte); text-align:left; }
+  .case-auto input { width:auto; }
+</style>
+</head>
+<body>
+
+<div class="ui">
+  <div class="barre">
+    <input type="text" id="cmd" placeholder="Ex : Frédéric · Rémi pour hier · «André Bobov»"
+           autocomplete="off" autocorrect="off" autocapitalize="words">
+    <button onclick="executer()">OK</button>
+  </div>
+  <div class="rangee">
+    <button onclick="modeCapture()">📷 Capture</button>
+    <button onclick="basculer('histo')">🗂 Reçus</button>
+    <button onclick="basculer('clients')">👥 Clients</button>
+    <button onclick="basculer('images')">🖼 Images</button>
+    <button onclick="basculer('reglages')">⚙️</button>
+  </div>
+  <button class="btn-envoyer" id="btnEnvoyer" onclick="envoyerRecu(false)">📤 Envoyer le reçu (PDF)</button>
+  <div class="msg" id="msg">Tapez un prénom, puis OK — le reçu se génère automatiquement.</div>
+
+  <!-- Choix en cas de doublon -->
+  <div id="choix">
+    <div class="q" id="choixTexte"></div>
+    <div class="boutons">
+      <button class="principal" onclick="choisirDoublon('deuxieme')">Créer un 2e reçu</button>
+      <button onclick="choisirDoublon('remplacer')">Remplacer le précédent</button>
+      <button onclick="choisirDoublon('annuler')">Annuler</button>
+    </div>
+  </div>
+
+  <!-- Choix en cas de client ambigu (ex : "Caro" correspond à plusieurs clients) -->
+  <div id="choixClient" class="panel-client">
+    <div class="panel-client-texte" id="choixClientTexte"></div>
+    <div class="panel-client-boutons" id="choixClientBoutons"></div>
+    <button class="panel-client-annuler" onclick="annulerChoixClient()">Annuler</button>
+  </div>
+
+  <div class="section" id="sec-histo">
+    <h3>Reçus générés</h3>
+    <div id="listeHisto"></div>
+  </div>
+
+  <div class="section" id="sec-clients">
+    <h3>Case load (<span id="nbClients"></span>)</h3>
+    <div class="guide">
+      <div class="g-titre">Générer un reçu</div>
+      <div><b>Frédéric</b> → reçu daté d'aujourd'hui, tarif de base</div>
+      <div><b>Rémi hier</b> · <b>Hadi vendredi dernier</b> · <b>Sonia 11 septembre</b> · <b>CM 11/09</b> → avec date</div>
+      <div><b>Hadi 180</b> → avec montant ponctuel</div>
+      <div><b>«André Bobov»</b> → client externe (guillemets), initiales automatiques</div>
+      <div class="g-titre">Gérer le case load</div>
+      <div><b>+Prénom Nom</b> → ajouter un client</div>
+      <div><b>-Nom</b> → retirer un client (appuyer OK deux fois pour confirmer)</div>
+      <div class="g-titre">Honoraires</div>
+      <div><b>=Nom 120</b> → honoraires attitrés à ce client (appliqués automatiquement à ses reçus)</div>
+      <div><b>=Nom</b> → retirer les honoraires attitrés, retour au tarif de base</div>
+      <div><b>⚙️ Réglages</b> → changement global du tarif de base (tous les clients sans tarif attitré)</div>
+      <div class="g-titre">Reçu et export</div>
+      <div><b>📤 Envoyer le reçu</b> → crée le PDF « Reçu XXaammjj.pdf » et ouvre le partage (choisir Gmail) ; automatique après chaque reçu si activé dans ⚙️</div>
+      <div><b>📷 Capture</b> → masque l'interface pour la capture d'écran ; toucher le reçu pour revenir</div>
+      <div>Tous les champs du reçu sont modifiables d'un tap direct (numéro, nom, date, montant, motif, observations)</div>
+      <div>Doublon détecté → choix : <b>2e reçu</b> (-2) ou <b>remplacement</b> (-2 + mention « Ce reçu remplace… »)</div>
+      <div><b>🗂 Reçus</b> → historique complet : Revoir un reçu, × pour supprimer (deux taps)</div>
+      <div><b>🖼 Images</b> → logo et signature, enregistrés une seule fois en permanence</div>
+    </div>
+    <div id="listeClients"></div>
+  </div>
+
+  <div class="section" id="sec-images">
+    <h3>Images permanentes</h3>
+    <div class="fichier">Logo : <input type="file" accept="image/*" onchange="chargerImage(this,'logo')"></div>
+    <div class="fichier">Signature : <input type="file" accept="image/*" onchange="chargerImage(this,'sig')"></div>
+    <div class="msg" style="text-align:left; margin-top:4px;">Enregistrées une seule fois (localStorage).</div>
+  </div>
+
+  <div class="section" id="sec-reglages">
+    <h3>Réglages du praticien</h3>
+    <label>Nom complet</label>
+    <input type="text" id="pNom" placeholder="Prénom Nom">
+    <label>Titre</label>
+    <input type="text" id="pTitre" placeholder="Psychologue">
+    <label>Numéro de permis</label>
+    <input type="text" id="pPermis" placeholder="N° de permis">
+    <label>Adresse (ligne 1)</label>
+    <input type="text" id="pAdresse1" placeholder="Numéro et rue">
+    <label>Adresse (ligne 2)</label>
+    <input type="text" id="pAdresse2" placeholder="Code postal et ville">
+    <label>Motif (service par défaut)</label>
+    <input type="text" id="pService" placeholder="Consultation psychologique">
+    <label>Tarif de base ($ CAD)</label>
+    <input type="number" id="pTarif" inputmode="decimal" step="5" min="0" placeholder="160">
+    <label class="case-auto"><input type="checkbox" id="pAuto"> Ouvrir le partage automatiquement après chaque reçu</label>
+    <button class="enregistrer" onclick="sauverReglages()">Enregistrer</button>
+
+    <div class="sousTitre">Transférer vers une nouvelle version</div>
+    <div class="note-transfert">
+      Exportez pour obtenir un code contenant le case load, les honoraires attitrés et vos préférences (nom, permis, adresse, motif, tarif). Collez-le dans Notes pour le garder, puis dans la nouvelle version, collez-le et importez.
+    </div>
+    <button class="btn-secondaire" onclick="exporterDonnees()">📤 Exporter données</button>
+    <textarea id="zoneTransfert" rows="4" placeholder="Le code apparaît ici après export — ou collez-en un ici pour l'importer."></textarea>
+    <div class="btn-2">
+      <button class="imp" id="btnImporter" onclick="importerDonnees()">📥 Importer données</button>
+      <button class="reset" id="btnReset" onclick="demanderEffacement()">🗑 Tout effacer</button>
+    </div>
+    <div id="panelReset" class="panel-alerte">
+      <div class="panel-titre">⚠️ Tout effacer ?</div>
+      <div class="panel-texte">Ceci supprime définitivement le case load (il restera vide, sans retour à la liste d'origine), les honoraires attitrés, l'historique des reçus, vos préférences, le logo et la signature.</div>
+      <div class="panel-boutons">
+        <button class="panel-annuler" onclick="annulerEffacement()">Annuler</button>
+        <button class="panel-confirmer" onclick="confirmerEffacement()">Oui, tout effacer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== REÇU ===== -->
+<div id="recu" onclick="quitterCapture(event)">
+  <span id="zoneLogo"><span class="placeholder">Logo — onglet 🖼 Images</span></span>
+  <div class="corps">
+    <div class="champ">Reçu No : <span id="rNum" contenteditable="true">—</span></div>
+    <div class="champ"><span id="rClient" contenteditable="true">—</span></div>
+    <div class="remplace" id="rRemplace"></div>
+    <div class="champ">Date : <span id="rDate" contenteditable="true">—</span></div>
+    <div class="champ">Montant : <span id="rMontant" contenteditable="true">160,00 $ CAD</span></div>
+    <div class="champ"><span id="rService" contenteditable="true">Consultation psychologique</span></div>
+  </div>
+  <div class="obs"><span id="rObs" contenteditable="true"></span></div>
+  <div class="zone-signature">
+    <div class="tampon">PAYÉ</div>
+    <div id="zoneSig"><span class="placeholder">Signature — onglet 🖼 Images</span></div>
+  </div>
+  <div class="praticien">
+    <div class="nom" id="lignePraticien"></div>
+    <div id="lignePermis"></div>
+    <div id="ligneAdresse1"></div>
+    <div id="ligneAdresse2"></div>
+  </div>
+</div>
+
+<script>
+/* ================= DONNÉES ================= */
+const K = { logo:'smsll4_logo', sig:'smsll4_sig', clients:'smsll4_clients', histo:'smsll4_histo', prat:'smsll4_praticien', tarifs:'smsll4_tarifs' };
+
+const CLIENTS_INITIAUX = [];   // vide : le case load vient de « Importer données »
+
+const TARIFS_INITIAUX = {};
+
+const PRAT_DEFAUT = { nom:"", titre:"", permis:"", adresse1:"", adresse2:"",
+                      service:"Consultation psychologique", tarif:160, autoPartage:true };
+
+const MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+const JOURS = ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
+
+let clients = JSON.parse(localStorage.getItem(K.clients) || 'null') || CLIENTS_INITIAUX.slice();
+let histo   = JSON.parse(localStorage.getItem(K.histo)   || '[]');
+let prat    = Object.assign({}, PRAT_DEFAUT, JSON.parse(localStorage.getItem(K.prat) || '{}'));
+let tarifs  = JSON.parse(localStorage.getItem(K.tarifs) || 'null') || Object.assign({}, TARIFS_INITIAUX);
+
+let enAttente = null;          // génération en attente (doublon)
+let supprEnAttente = null;     // confirmation de suppression (historique)
+let retraitEnAttente = null;   // confirmation de retrait (client)
+let clientEnAttente = null;    // choix en attente (client ambigu, ex : "Caro")
+
+function sauver(){
+  localStorage.setItem(K.clients, JSON.stringify(clients));
+  localStorage.setItem(K.histo,   JSON.stringify(histo));
+  localStorage.setItem(K.prat,    JSON.stringify(prat));
+  localStorage.setItem(K.tarifs,  JSON.stringify(tarifs));
+}
+
+/* ============ MIGRATION IMAGES v3 ============ */
+(function(){
+  ['logo','sig'].forEach(t=>{
+    if (localStorage.getItem(K[t])) return;
+    for (let i=0;i<localStorage.length;i++){
+      const cle = localStorage.key(i), val = localStorage.getItem(cle);
+      if (cle===K.logo||cle===K.sig) continue;
+      const m = t==='logo' ? /logo/i : /sig|signature/i;
+      if (m.test(cle) && val && val.startsWith('data:image')){
+        localStorage.setItem(K[t], val); break;
+      }
+    }
+  });
+})();
+
+/* ================= UTILITAIRES ================= */
+const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+
+function initiales(nom){
+  const mots = nom.trim().split(/\s+/);
+  if (mots.length === 1) return mots[0].slice(0,2).toUpperCase();
+  return (mots[0][0] + mots[mots.length-1][0]).toUpperCase();
+}
+function fmtDate(d){ return d.getDate() + ' ' + MOIS[d.getMonth()] + ' ' + d.getFullYear(); }
+function fmtNum(prefixe, d){
+  const aa = String(d.getFullYear()).slice(2);
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const jj = String(d.getDate()).padStart(2,'0');
+  return prefixe + aa + mm + jj;
+}
+function fmtMontant(n){ return n.toFixed(2).replace('.',',') + ' $ CAD'; }
+
+/* ============ RECHERCHE CLIENT ============ */
+function tokensDe(nom){ return norm(nom).split(/[\s-]+/).filter(Boolean); }
+
+function trouverClient(texte){
+  return trouverClientsCandidats(texte)[0] || null;
+}
+
+/* Retourne TOUS les clients correspondant au meilleur niveau de correspondance
+   (au lieu d'en choisir un seul silencieusement) — permet de détecter les cas ambigus.
+   Chaque MOT du nom (prénom, second prénom, nom de famille) est comparé séparément :
+   ainsi "Caro" trouve aussi "Ana Carolina Veiga" (2e mot), sans attraper de faux positifs
+   comme "Charles" pour "Har" (le mot doit COMMENCER par le texte tapé, pas le contenir). */
+function trouverClientsCandidats(texte){
+  const q = norm(texte);
+  if (!q) return [];
+  let m;
+  m = clients.filter(x => norm(x) === q); if (m.length) return m;
+  m = clients.filter(x => tokensDe(x)[0] === q); if (m.length) return m;
+  m = clients.filter(x => tokensDe(x).some(mot => mot.startsWith(q))); if (m.length) return m;
+  m = clients.filter(x => norm(x).includes(q)); if (m.length) return m;
+  m = clients.filter(x => tokensDe(x).some(mot => mot.slice(0,3) === q.slice(0,3)));
+  return m;
+}
+
+/* ============ DATES NATURELLES ============ */
+function trouverDate(texte){
+  const t = norm(texte);
+  const auj = new Date();
+  let d = null, capture = '';
+  const rejette = (regex) => { const m = t.match(regex); if (m) capture = m[0]; return m; };
+
+  if (rejette(/aujourd\s?'?hui/))      d = new Date();
+  else if (rejette(/avant[- ]hier/))  { d = new Date(); d.setDate(d.getDate()-2); }
+  else if (rejette(/\bhier\b/))       { d = new Date(); d.setDate(d.getDate()-1); }
+  else {
+    for (let i=0;i<7;i++){
+      const rj = new RegExp('\\b'+norm(JOURS[i])+'\\b(\\s+dernier)?');
+      const m = t.match(rj);
+      if (m){
+        capture = m[0];
+        d = new Date();
+        let diff = (auj.getDay() - i + 7) % 7;
+        if (diff === 0) diff = 7;
+        d.setDate(d.getDate() - diff);
+        break;
+      }
+    }
+    if (!d){
+      for (let i=0;i<12;i++){
+        const rm = new RegExp('\\b(\\d{1,2})\\s+'+norm(MOIS[i])+'(\\s+(\\d{4}))?');
+        const m = t.match(rm);
+        if (m){
+          capture = m[0];
+          d = new Date(m[3] ? +m[3] : auj.getFullYear(), i, +m[1]);
+          if (!m[3] && d > auj) d.setFullYear(d.getFullYear()-1);
+          break;
+        }
+      }
+    }
+    if (!d){
+      let m = t.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+      if (m){ capture=m[0]; d = new Date(+m[1], +m[2]-1, +m[3]); }
+      else {
+        m = t.match(/\b(\d{1,2})\/(\d{1,2})(\/(\d{4}))?\b/);
+        if (m){
+          capture=m[0];
+          d = new Date(m[4] ? +m[4] : auj.getFullYear(), +m[2]-1, +m[1]);
+          if (!m[4] && d > auj) d.setFullYear(d.getFullYear()-1);
+        }
+      }
+    }
+  }
+  return d ? { date:d, capture } : null;
+}
+
+/* ================= COMMANDE ================= */
+function executer(){
+  const brut = document.getElementById('cmd').value.trim();
+  if (!brut) return;
+  cacherChoix();
+  cacherChoixClient();
+
+  // + Ajouter un client
+  if (brut.startsWith('+')){
+    const nom = brut.slice(1).trim();
+    if (!nom) return message('Nom manquant après +', true);
+    if (clients.some(c => norm(c) === norm(nom))) return message('Déjà dans le case load.', true);
+    clients.push(nom); clients.sort((a,b)=>a.localeCompare(b,'fr'));
+    sauver(); afficherClients();
+    document.getElementById('cmd').value = '';
+    return message('✓ ' + nom + ' ajouté(e) — ' + clients.length + ' clients.');
+  }
+
+  // = Honoraires attitrés à un client
+  if (brut.startsWith('=')){
+    const m = brut.slice(1).trim().match(/^(.*?)(?:\s+(\d{2,4})(?:[.,](\d{1,2}))?\s?\$?)?$/);
+    const c = trouverClient(m[1].trim());
+    if (!c) return message('Client introuvable.', true);
+    if (m[2]){
+      const t = +m[2] + (m[3] ? +('0.'+m[3].padEnd(2,'0')) : 0);
+      tarifs[c] = t;
+      sauver(); afficherClients();
+      document.getElementById('cmd').value = '';
+      return message('✓ Honoraires attitrés : ' + c + ' → ' + fmtMontant(t));
+    }
+    delete tarifs[c];
+    sauver(); afficherClients();
+    document.getElementById('cmd').value = '';
+    return message('✓ ' + c + ' : retour au tarif de base (' + fmtMontant(+prat.tarif) + ').');
+  }
+
+  // - Retirer un client (retaper la commande pour confirmer)
+  if (brut.startsWith('-')){
+    const c = trouverClient(brut.slice(1).trim());
+    if (!c) return message('Client introuvable.', true);
+    if (retraitEnAttente === c){
+      clients = clients.filter(x => x !== c);
+      delete tarifs[c];
+      retraitEnAttente = null;
+      sauver(); afficherClients();
+      document.getElementById('cmd').value = '';
+      return message('✓ ' + c + ' retiré(e) du case load.');
+    }
+    retraitEnAttente = c;
+    return message('Retirer ' + c + ' ? Appuyez de nouveau sur OK pour confirmer.', true);
+  }
+  retraitEnAttente = null;
+
+  // Client externe entre guillemets
+  let nomClient = null, externe = false;
+  const mG = brut.match(/[«"']([^»"']+)[»"']/);
+  if (mG){ nomClient = mG[1].trim(); externe = true; }
+
+  // Date
+  const rd = trouverDate(brut);
+  const date = rd ? rd.date : new Date();
+
+  // Montant
+  let montant = +prat.tarif || 160;
+  const reste = brut.replace(mG ? mG[0] : '', '').replace(rd ? rd.capture : '','');
+  const mM = reste.match(/\b(\d{2,4})(?:[.,](\d{1,2}))?\s?\$?/);
+  if (mM && +mM[1] >= 20){ montant = +mM[1] + (mM[2] ? +('0.'+mM[2].padEnd(2,'0')) : 0); }
+
+  // Client du case load
+  if (!externe){
+    const texteClient = brut
+      .replace(rd ? rd.capture : '','')
+      .replace(/\bpour\b/gi,'')
+      .replace(/\b\d[\d.,\/\-]*\s?\$?\b/g,'')
+      .trim();
+    const montantExplicite = !!(mM && +mM[1] >= 20);
+    const candidats = trouverClientsCandidats(texteClient);
+
+    if (candidats.length === 0){
+      return message('Client introuvable : « ' + texteClient + ' ». Externe ? Utilisez «guillemets».', true);
+    }
+    if (candidats.length > 1){
+      clientEnAttente = { date, montant, montantExplicite };
+      afficherChoixClient(candidats);
+      return;
+    }
+    nomClient = candidats[0];
+    if (!montantExplicite && tarifs[nomClient] !== undefined) montant = tarifs[nomClient];
+  }
+
+  verifierDoublonEtGenerer(nomClient, date, montant);
+  document.getElementById('cmd').value = '';
+}
+
+/* ============ CLIENT AMBIGU ============ */
+function afficherChoixClient(candidats){
+  const zone = document.getElementById('choixClientBoutons');
+  zone.innerHTML = '';
+  candidats.forEach(nom => {
+    const b = document.createElement('button');
+    b.className = 'choix-client-bouton';
+    b.textContent = nom;
+    b.addEventListener('click', () => choisirClient(nom));
+    zone.appendChild(b);
+  });
+  document.getElementById('choixClientTexte').textContent =
+    candidats.length + ' clients correspondent — lequel ?';
+  document.getElementById('choixClient').classList.add('visible');
+}
+function choisirClient(nom){
+  cacherChoixClient();
+  if (!clientEnAttente) return;
+  let { date, montant, montantExplicite } = clientEnAttente;
+  if (!montantExplicite && tarifs[nom] !== undefined) montant = tarifs[nom];
+  clientEnAttente = null;
+  verifierDoublonEtGenerer(nom, date, montant);
+  document.getElementById('cmd').value = '';
+}
+function annulerChoixClient(){
+  cacherChoixClient();
+  clientEnAttente = null;
+  message('Génération annulée.');
+}
+function cacherChoixClient(){ document.getElementById('choixClient').classList.remove('visible'); }
+
+/* ============ DOUBLON + GÉNÉRATION ============ */
+function verifierDoublonEtGenerer(nomClient, date, montant){
+  const base = fmtNum(initiales(nomClient), date);
+  const existe = histo.some(h => h.num === base);
+  if (existe){
+    enAttente = { nom:nomClient, date, montant, base };
+    document.getElementById('choixTexte').innerHTML =
+      'Le reçu <b>' + base + '</b> existe déjà pour ' + nomClient + '.';
+    document.getElementById('choix').classList.add('visible');
+    return;
+  }
+  genererRecu(nomClient, date, montant, base, null);
+}
+
+/* ============ GESTION DES DOUBLONS ============ */
+function choisirDoublon(action){
+  cacherChoix();
+  if (!enAttente || action === 'annuler'){ enAttente = null; return message('Génération annulée.'); }
+  const p = enAttente; enAttente = null;
+
+  // Numéro suivant disponible (-2, -3…) dans les deux cas
+  let n = 2, num = p.base + '-' + n;
+  while (histo.some(h => h.num === num)){ n++; num = p.base + '-' + n; }
+
+  if (action === 'deuxieme'){
+    genererRecu(p.nom, p.date, p.montant, num, null);
+  } else {
+    // Remplacer : nouveau numéro distinct, mention explicite, ancien marqué comme remplacé
+    histo.forEach(h => { if (h.num === p.base) h.remplacePar = num; });
+    genererRecu(p.nom, p.date, p.montant, num, 'Ce reçu remplace ' + p.base);
+  }
+  document.getElementById('cmd').value = '';
+}
+function cacherChoix(){ document.getElementById('choix').classList.remove('visible'); }
+
+/* ============ GÉNÉRATION ============ */
+function genererRecu(nom, date, montant, num, mentionRemplace){
+  const dateTxt = (date instanceof Date) ? fmtDate(date) : date;
+  const montantTxt = (typeof montant === 'number') ? fmtMontant(montant) : montant;
+
+  document.getElementById('rNum').textContent     = num;
+  document.getElementById('rClient').textContent  = nom;
+  document.getElementById('rDate').textContent    = dateTxt;
+  document.getElementById('rMontant').textContent = montantTxt;
+  document.getElementById('rService').textContent = prat.service;
+  document.getElementById('rObs').textContent     = '';
+  afficherRemplace(mentionRemplace);
+
+  histo.unshift({ num, nom, date: dateTxt, montant: montantTxt, service: prat.service, remplace: mentionRemplace || null, quand: Date.now() });
+  if (histo.length > 200) histo.length = 200;
+  sauver(); afficherHisto();
+  message('✓ Reçu ' + num + (mentionRemplace ? ' (remplacement)' : '') + ' prêt — 📤 Envoyer le reçu.');
+  if (prat.autoPartage !== false) envoyerRecu(true);
+}
+function afficherRemplace(texte){
+  const el = document.getElementById('rRemplace');
+  el.textContent = texte || '';
+  el.classList.toggle('visible', !!texte);
+}
+
+/* ================= HISTORIQUE ================= */
+function afficherHisto(){
+  supprEnAttente = null;
+  const zone = document.getElementById('listeHisto');
+  if (!histo.length){ zone.innerHTML = '<div class="vide">Aucun reçu généré.</div>'; return; }
+  zone.innerHTML = '';
+  histo.slice(0,30).forEach((h, i) => {
+    const ligne = document.createElement('div');
+    ligne.className = 'ligne';
+
+    const info = document.createElement('div');
+    info.className = 'info';
+    info.innerHTML = '<b>' + h.num + '</b> — ' + h.nom +
+      '<div class="sub">' + h.date + ' · ' + h.montant +
+      (h.remplace ? ' · remplacement' : '') +
+      (h.remplacePar ? ' · remplacé par ' + h.remplacePar : '') + '</div>';
+
+    const bCharger = document.createElement('button');
+    bCharger.className = 'btn-charger';
+    bCharger.textContent = 'Revoir';
+    bCharger.addEventListener('click', () => rechargerRecu(i));
+
+    const bSuppr = document.createElement('button');
+    bSuppr.className = 'btn-suppr';
+    bSuppr.textContent = '×';
+    bSuppr.addEventListener('click', () => {
+      if (supprEnAttente === i){
+        histo.splice(i,1);
+        sauver(); afficherHisto();
+        message('✓ Reçu supprimé de l’historique.');
+      } else {
+        // Réinitialiser les autres boutons
+        document.querySelectorAll('.btn-suppr.confirm').forEach(b => { b.classList.remove('confirm'); b.textContent='×'; });
+        supprEnAttente = i;
+        bSuppr.classList.add('confirm');
+        bSuppr.textContent = 'Suppr ?';
+        message('Appuyez de nouveau pour confirmer la suppression.', true);
+      }
+    });
+
+    ligne.append(info, bCharger, bSuppr);
+    zone.appendChild(ligne);
+  });
+}
+function rechargerRecu(i){
+  const h = histo[i];
+  document.getElementById('rNum').textContent     = h.num;
+  document.getElementById('rClient').textContent  = h.nom;
+  document.getElementById('rDate').textContent    = h.date;
+  document.getElementById('rMontant').textContent = h.montant;
+  document.getElementById('rService').textContent = h.service || prat.service;
+  document.getElementById('rObs').textContent     = '';
+  afficherRemplace(h.remplace);
+  message('Reçu ' + h.num + ' rechargé.');
+}
+
+/* ================= CLIENTS ================= */
+function afficherClients(){
+  document.getElementById('nbClients').textContent = clients.length;
+  const zone = document.getElementById('listeClients');
+  if (!clients.length){ zone.innerHTML = '<div class="vide">Case load vide.</div>'; return; }
+  zone.innerHTML = clients.map(c => `
+    <div class="ligne">
+      <div class="info">${c}<div class="sub">${initiales(c)}${tarifs[c] !== undefined ? ' · tarif attitré : ' + fmtMontant(tarifs[c]) : ''}</div></div>
+    </div>`).join('');
+}
+
+/* ================= IMAGES ================= */
+function chargerImage(input, type){
+  const f = input.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try { localStorage.setItem(K[type], e.target.result); }
+    catch(err){ return message('Image trop lourde pour le stockage. Réduisez-la.', true); }
+    afficherImages();
+    message('✓ ' + (type==='logo'?'Logo':'Signature') + ' enregistré(e) en permanence.');
+  };
+  r.readAsDataURL(f);
+}
+function afficherImages(){
+  const logo = localStorage.getItem(K.logo);
+  const sig  = localStorage.getItem(K.sig);
+  imgLogo = logo ? chargerImg(logo) : null;
+  imgSig  = sig  ? chargerImg(sig)  : null;
+  document.getElementById('zoneLogo').innerHTML = logo
+    ? `<img class="logo" src="${logo}" alt="">`
+    : `<span class="placeholder">Logo — onglet 🖼 Images</span>`;
+  document.getElementById('zoneSig').innerHTML = sig
+    ? `<img class="sig" src="${sig}" alt="">`
+    : `<span class="placeholder">Signature — onglet 🖼 Images</span>`;
+}
+
+/* ================= RÉGLAGES ================= */
+function chargerReglagesUI(){
+  document.getElementById('pNom').value    = prat.nom;
+  document.getElementById('pTitre').value  = prat.titre;
+  document.getElementById('pPermis').value = prat.permis;
+  document.getElementById('pAdresse1').value = prat.adresse1;
+  document.getElementById('pAdresse2').value = prat.adresse2;
+  document.getElementById('pService').value = prat.service;
+  document.getElementById('pTarif').value  = prat.tarif;
+  document.getElementById('pAuto').checked = prat.autoPartage !== false;
+}
+function sauverReglages(){
+  prat.nom    = document.getElementById('pNom').value.trim();
+  prat.titre  = document.getElementById('pTitre').value.trim();
+  prat.permis = document.getElementById('pPermis').value.trim();
+  prat.adresse1 = document.getElementById('pAdresse1').value.trim();
+  prat.adresse2 = document.getElementById('pAdresse2').value.trim();
+  prat.service = document.getElementById('pService').value.trim() || PRAT_DEFAUT.service;
+  prat.tarif  = parseFloat(document.getElementById('pTarif').value) || PRAT_DEFAUT.tarif;
+  prat.autoPartage = document.getElementById('pAuto').checked;
+  sauver();
+  appliquerPraticien();
+  basculer('reglages');
+  message('✓ Réglages enregistrés — tarif de base : ' + fmtMontant(prat.tarif));
+}
+function appliquerPraticien(){
+  document.getElementById('lignePraticien').textContent = [prat.nom, prat.titre].filter(Boolean).join(', ');
+  document.getElementById('lignePermis').textContent = prat.permis;
+  document.getElementById('ligneAdresse1').textContent = prat.adresse1;
+  document.getElementById('ligneAdresse2').textContent = prat.adresse2;
+  document.getElementById('rService').textContent = prat.service;
+}
+
+/* ================= TRANSFERT ================= */
+let etatImport = false;
+
+function exporterDonnees(){
+  const paquet = { clients, tarifs, prat, exporte: new Date().toISOString() };
+  const json = JSON.stringify(paquet);
+  const zone = document.getElementById('zoneTransfert');
+  zone.value = json;
+  zone.focus(); zone.select();
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(json).then(() => {
+      message('✓ Copié dans le presse-papiers — collez-le dans Notes pour le conserver.');
+    }).catch(() => {
+      message('Code prêt ci-dessous, déjà sélectionné — copiez-le manuellement.');
+    });
+  } else {
+    message('Code prêt ci-dessous, déjà sélectionné — copiez-le manuellement.');
+  }
+}
+
+function reinitialiserEtatTransfert(){
+  etatImport = false;
+  const bi = document.getElementById('btnImporter');
+  bi.textContent = '📥 Importer'; bi.classList.remove('confirm');
+}
+
+function importerDonnees(){
+  const txt = document.getElementById('zoneTransfert').value.trim();
+  if (!txt) return message('Collez d’abord un code de données dans la case.', true);
+
+  let paquet;
+  try { paquet = JSON.parse(txt); }
+  catch(e){ return message('Code invalide — vérifiez le copier-coller.', true); }
+  if (!paquet || (!paquet.clients && !paquet.tarifs && !paquet.histo && !paquet.prat)){
+    return message('Ce code ne contient pas de données reconnues.', true);
+  }
+
+  const btn = document.getElementById('btnImporter');
+  if (!etatImport){
+    etatImport = true;
+    btn.textContent = 'Confirmer le remplacement ?';
+    btn.classList.add('confirm');
+    message('Ceci remplace vos données actuelles. Appuyez de nouveau pour confirmer.', true);
+    return;
+  }
+
+  // Ne remplace QUE ce qui est réellement présent dans le fichier importé —
+  // les champs absents (ex : historique non inclus dans un backup de case load)
+  // laissent les données actuelles intactes, ils ne sont jamais vidés par défaut.
+  if (paquet.clients !== undefined) clients = paquet.clients;
+  if (paquet.tarifs  !== undefined) tarifs  = paquet.tarifs;
+  if (paquet.histo   !== undefined) histo   = paquet.histo;
+  if (paquet.prat    !== undefined) prat    = Object.assign({}, PRAT_DEFAUT, prat, paquet.prat);
+  if (paquet.logo) localStorage.setItem(K.logo, paquet.logo);
+  if (paquet.sig)  localStorage.setItem(K.sig,  paquet.sig);
+  sauver();
+  afficherClients(); afficherHisto(); afficherImages(); chargerReglagesUI(); appliquerPraticien();
+  reinitialiserEtatTransfert();
+  message('✓ Données importées avec succès.');
+}
+
+function demanderEffacement(){
+  document.getElementById('panelReset').classList.add('visible');
+}
+function annulerEffacement(){
+  document.getElementById('panelReset').classList.remove('visible');
+  message('Effacement annulé — rien n’a été supprimé.');
+}
+function confirmerEffacement(){
+  localStorage.setItem(K.clients, JSON.stringify([]));   // case load réellement vide (pas un retour à la liste de départ)
+  localStorage.setItem(K.tarifs, JSON.stringify({}));    // honoraires attitrés réellement vidés (pas un retour au backup)
+  [K.histo, K.prat, K.logo, K.sig].forEach(k => localStorage.removeItem(k));
+  document.getElementById('panelReset').classList.remove('visible');
+  location.reload();
+}
+document.getElementById('zoneTransfert').addEventListener('input', reinitialiserEtatTransfert);
+
+/* ================= INTERFACE ================= */
+function basculer(id){
+  ['histo','clients','images','reglages'].forEach(x =>
+    document.getElementById('sec-'+x).classList.toggle('visible',
+      x===id && !document.getElementById('sec-'+x).classList.contains('visible'))
+  );
+}
+function message(txt, err){
+  const m = document.getElementById('msg');
+  m.textContent = txt;
+  m.className = 'msg ' + (err ? 'err' : 'ok');
+}
+function modeCapture(){ document.body.classList.add('capture'); }
+function quitterCapture(e){
+  if (document.body.classList.contains('capture')){
+    document.body.classList.remove('capture');
+    e.stopPropagation();
+  }
+}
+document.getElementById('cmd').addEventListener('keydown', e => {
+  if (e.key === 'Enter'){ e.preventDefault(); executer(); }
+});
+
+/* ================= PDF & PARTAGE ================= */
+let imgLogo = null, imgSig = null;
+function chargerImg(src){ const i = new Image(); i.src = src; return i; }
+function imgOk(i){ return !!(i && i.complete && i.naturalWidth > 0); }
+function imagesPretes(){ return (!imgLogo || imgLogo.complete) && (!imgSig || imgSig.complete); }
+function attendreImages(){
+  const att = i => (!i || i.complete) ? Promise.resolve() : new Promise(r => { i.onload = r; i.onerror = r; });
+  return Promise.all([att(imgLogo), att(imgSig)]);
+}
+
+function lireRecu(){
+  const t = id => document.getElementById(id).textContent.trim();
+  const rem = document.getElementById('rRemplace');
+  return {
+    num: t('rNum'), client: t('rClient'), date: t('rDate'), montant: t('rMontant'),
+    service: t('rService'), obs: t('rObs'),
+    remplace: rem.classList.contains('visible') ? rem.textContent.trim() : ''
+  };
+}
+
+function rectArrondi(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+/* Dessine le reçu sur un canvas (unités = pixels CSS, largeur 350). Retourne la hauteur totale. */
+function dessinerRecu(ctx, d){
+  const W = 350, BLEU = '#4A90E2', TXT = '#333', POLICE = 'Arial, Helvetica, sans-serif';
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, 1500);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  let y = 28;
+
+  if (imgOk(imgLogo)){
+    const w = 65, h = w * imgLogo.naturalHeight / imgLogo.naturalWidth;
+    ctx.drawImage(imgLogo, (W - w) / 2, y, w, h);
+    y += h + 22;
+  }
+
+  // Ligne centrée, avec retour à la ligne si trop longue (largeur utile 310)
+  const lignes = (texte, taille, style, hauteur, decal) => {
+    ctx.font = style + taille + 'px ' + POLICE; ctx.fillStyle = TXT; ctx.textAlign = 'center';
+    const mots = texte.split(/\s+/).filter(Boolean), out = [];
+    let cur = '';
+    mots.forEach(m => {
+      const t = cur ? cur + ' ' + m : m;
+      if (cur && ctx.measureText(t).width > 310){ out.push(cur); cur = m; } else cur = t;
+    });
+    out.push(cur);
+    out.forEach((l, i) => {
+      if (i === 0) y += 7;
+      if (l) ctx.fillText(l, W / 2, y + decal);
+      y += hauteur;
+    });
+  };
+
+  lignes('Reçu No : ' + d.num, 13, '', 19.5, 14);
+  lignes(d.client, 13, '', 19.5, 14);
+  if (d.remplace) lignes(d.remplace, 12, 'italic ', 14, 11);
+  lignes('Date : ' + d.date, 13, '', 19.5, 14);
+  lignes('Montant : ' + d.montant, 13, '', 19.5, 14);
+  lignes(d.service, 13, '', 19.5, 14);
+  y += 10;                                   // marge basse + marge haute des observations
+  if (d.obs) lignes(d.obs, 12, '', 14, 11); else y += 14;
+
+  // Signature (avec le tampon ancré dans la même zone)
+  const hautZone = y;
+  y += 24;
+  let hs = 40;
+  if (imgOk(imgSig)){
+    const w = 150; hs = w * imgSig.naturalHeight / imgSig.naturalWidth;
+    ctx.drawImage(imgSig, (W - w) / 2, y, w, hs);
+  }
+  y += hs + 4;
+  const cy = hautZone + (y - hautZone) / 2;
+
+  ctx.save();
+  ctx.font = 'bold 15px ' + POLICE;
+  const mot = 'PAYÉ', esp = 3;
+  const larg = Array.from(mot).reduce((tot, c) => tot + ctx.measureText(c).width + esp, 0);
+  const bw = larg + 25, bh = 15 * 1.15 + 11;
+  ctx.translate(324 - bw / 2, cy);
+  ctx.rotate(-14 * Math.PI / 180);
+  ctx.globalAlpha = 0.8;
+  ctx.strokeStyle = BLEU; ctx.lineWidth = 2.5;
+  rectArrondi(ctx, -bw / 2, -bh / 2, bw, bh, 6);
+  ctx.stroke();
+  ctx.fillStyle = BLEU; ctx.textAlign = 'left';
+  let x = -larg / 2;
+  Array.from(mot).forEach(c => { ctx.fillText(c, x, 5.5); x += ctx.measureText(c).width + esp; });
+  ctx.restore();
+
+  // Coordonnées du praticien
+  ctx.textAlign = 'center'; ctx.fillStyle = TXT;
+  y += 14;
+  const l1 = [prat.nom, prat.titre].filter(Boolean).join(', ');
+  if (l1){ ctx.font = 'bold 14px ' + POLICE; ctx.fillText(l1, W / 2, y + 13); y += 20; }
+  [prat.permis, prat.adresse1, prat.adresse2].forEach(l => {
+    if (!l) return;
+    ctx.font = '13px ' + POLICE; ctx.fillText(l, W / 2, y + 15); y += 20.8;
+  });
+  return y + 24;
+}
+
+function dataUrlVersBytes(du){
+  const bin = atob(du.split(',')[1]);
+  const u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return u;
+}
+
+/* Assemble un PDF d'une page contenant l'image JPEG du reçu (1 px CSS = 1 pt). */
+function construirePDF(jpeg, largPx, hautPx, largPt, hautPt){
+  const enc = new TextEncoder();
+  const parts = [], offsets = [];
+  let pos = 0;
+  const pousser = x => { const b = (typeof x === 'string') ? enc.encode(x) : x; parts.push(b); pos += b.length; };
+  const objet = (n, corps) => { offsets[n] = pos; pousser(n + ' 0 obj\n' + corps + '\nendobj\n'); };
+  const wPt = largPt.toFixed(2), hPt = hautPt.toFixed(2);
+
+  pousser(new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34, 0x0A, 0x25, 0xE2, 0xE3, 0xCF, 0xD3, 0x0A]));
+  objet(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  objet(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+  objet(3, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + wPt + ' ' + hPt + '] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
+  offsets[4] = pos;
+  pousser('4 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + largPx + ' /Height ' + hautPx +
+          ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpeg.length + ' >>\nstream\n');
+  pousser(jpeg);
+  pousser('\nendstream\nendobj\n');
+  const contenu = 'q ' + wPt + ' 0 0 ' + hPt + ' 0 0 cm /Im0 Do Q';
+  objet(5, '<< /Length ' + contenu.length + ' >>\nstream\n' + contenu + '\nendstream');
+
+  const debutXref = pos;
+  let xref = 'xref\n0 6\n0000000000 65535 f \n';
+  for (let n = 1; n <= 5; n++) xref += String(offsets[n]).padStart(10, '0') + ' 00000 n \n';
+  pousser(xref);
+  pousser('trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n' + debutXref + '\n%%EOF\n');
+  return new Blob(parts, { type: 'application/pdf' });
+}
+
+function fabriquerFichierPDF(){
+  const S = 3, W = 350, d = lireRecu();
+  const tmp = document.createElement('canvas');
+  tmp.width = W * S; tmp.height = 1500 * S;
+  const tctx = tmp.getContext('2d'); tctx.scale(S, S);
+  const H = Math.ceil(dessinerRecu(tctx, d));          // 1re passe : mesure la hauteur
+  const c = document.createElement('canvas');
+  c.width = W * S; c.height = H * S;
+  const ctx = c.getContext('2d'); ctx.scale(S, S);
+  dessinerRecu(ctx, d);                                // 2e passe : dessin final
+  const jpeg = dataUrlVersBytes(c.toDataURL('image/jpeg', 0.92));
+  const blob = construirePDF(jpeg, c.width, c.height, W, H);
+  return new File([blob], 'Reçu ' + d.num + '.pdf', { type: 'application/pdf' });
+}
+
+function telechargerFichier(fichier){
+  const url = URL.createObjectURL(fichier);
+  const a = document.createElement('a');
+  a.href = url; a.download = fichier.name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+function partagerRecu(auto){
+  const d = lireRecu();
+  let fichier;
+  try { fichier = fabriquerFichierPDF(); }
+  catch (e){ return message('Impossible de créer le PDF : ' + e.message, true); }
+
+  const donnees = { files: [fichier], title: 'Reçu ' + d.num, text: 'Merci' };
+  if (navigator.share && navigator.canShare && navigator.canShare(donnees)){
+    // Appel fait dans le même geste que le tap : indispensable sur iOS
+    navigator.share(donnees)
+      .then(() => message('✓ Partage ouvert — choisissez Gmail.'))
+      .catch(e => {
+        if (e && e.name === 'AbortError') return message('Partage annulé — touchez 📤 Envoyer le reçu pour le rouvrir.');
+        message(auto
+          ? 'Safari a bloqué l’ouverture automatique — touchez 📤 Envoyer le reçu.'
+          : 'Partage impossible : ' + (e && e.message ? e.message : 'erreur inconnue'), true);
+      });
+  } else {
+    telechargerFichier(fichier);
+    message('Partage indisponible ici — le PDF a été téléchargé à la place.', true);
+  }
+}
+
+function envoyerRecu(auto){
+  const d = lireRecu();
+  if (!d.num || d.num === '—') return message('Générez d’abord un reçu.', true);
+  if (imagesPretes()) partagerRecu(auto);                   // chemin synchrone (le plus fiable sur iOS)
+  else attendreImages().then(() => partagerRecu(auto));
+}
+
+/* ================= INIT ================= */
+afficherImages();
+afficherClients();
+afficherHisto();
+chargerReglagesUI();
+appliquerPraticien();
+if (!prat.nom) message('Première utilisation : ouvrez ⚙️ pour entrer vos coordonnées, ou collez un code dans « Importer données ».');
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
