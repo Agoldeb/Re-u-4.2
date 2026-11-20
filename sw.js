@@ -1,6 +1,6 @@
 // Service worker : permet d'ouvrir l'app sans réseau.
 // Stratégie « réseau d'abord » : quand vous êtes en ligne, vous avez toujours la dernière version.
-const CACHE = 'recus-4-2';
+const CACHE = 'recus-4-3';
 const FICHIERS = ['./', './index.html', './icon.png'];
 
 self.addEventListener('install', e => {

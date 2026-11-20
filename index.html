@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Reçus 4.2</title>
+<title>Reçus 4.3</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Reçus">
@@ -234,7 +234,7 @@
       <div><b>=Nom</b> → retirer les honoraires attitrés, retour au tarif de base</div>
       <div><b>⚙️ Réglages</b> → changement global du tarif de base (tous les clients sans tarif attitré)</div>
       <div class="g-titre">Reçu et export</div>
-      <div><b>📤 Envoyer le reçu</b> → crée le PDF « Reçu XXaammjj.pdf » et ouvre le partage (choisir Gmail) ; automatique après chaque reçu si activé dans ⚙️</div>
+      <div><b>📤 Envoyer le reçu</b> → après OK, vérifiez le reçu à l'écran (le bouton indique le nom du client), puis touchez-le : crée le PDF « Reçu XXaammjj.pdf » et ouvre le partage (choisir Gmail). Envoi immédiat sans vérification : option dans ⚙️</div>
       <div><b>📷 Capture</b> → masque l'interface pour la capture d'écran ; toucher le reçu pour revenir</div>
       <div>Tous les champs du reçu sont modifiables d'un tap direct (numéro, nom, date, montant, motif, observations)</div>
       <div>Doublon détecté → choix : <b>2e reçu</b> (-2) ou <b>remplacement</b> (-2 + mention « Ce reçu remplace… »)</div>
@@ -267,7 +267,7 @@
     <input type="text" id="pService" placeholder="Consultation psychologique">
     <label>Tarif de base ($ CAD)</label>
     <input type="number" id="pTarif" inputmode="decimal" step="5" min="0" placeholder="160">
-    <label class="case-auto"><input type="checkbox" id="pAuto"> Ouvrir le partage automatiquement après chaque reçu</label>
+    <label class="case-auto"><input type="checkbox" id="pAuto"> Ouvrir le partage tout de suite après chaque reçu (sans vérification préalable)</label>
     <button class="enregistrer" onclick="sauverReglages()">Enregistrer</button>
 
     <div class="sousTitre">Transférer vers une nouvelle version</div>
@@ -324,7 +324,7 @@ const CLIENTS_INITIAUX = [];   // vide : le case load vient de « Importer donn�
 const TARIFS_INITIAUX = {};
 
 const PRAT_DEFAUT = { nom:"", titre:"", permis:"", adresse1:"", adresse2:"",
-                      service:"Consultation psychologique", tarif:160, autoPartage:true };
+                      service:"Consultation psychologique", tarif:160, autoPartage:false };
 
 const MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
 const JOURS = ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
@@ -629,8 +629,9 @@ function genererRecu(nom, date, montant, num, mentionRemplace){
   histo.unshift({ num, nom, date: dateTxt, montant: montantTxt, service: prat.service, remplace: mentionRemplace || null, quand: Date.now() });
   if (histo.length > 200) histo.length = 200;
   sauver(); afficherHisto();
-  message('✓ Reçu ' + num + (mentionRemplace ? ' (remplacement)' : '') + ' prêt — 📤 Envoyer le reçu.');
-  if (prat.autoPartage !== false) envoyerRecu(true);
+  majBoutonEnvoyer();
+  message('✓ Reçu ' + num + (mentionRemplace ? ' (remplacement)' : '') + ' pour ' + nom + ' — vérifiez-le ci-dessous, puis touchez Envoyer.');
+  if (prat.autoPartage === true) envoyerRecu(true);
 }
 function afficherRemplace(texte){
   const el = document.getElementById('rRemplace');
@@ -691,6 +692,7 @@ function rechargerRecu(i){
   document.getElementById('rService').textContent = h.service || prat.service;
   document.getElementById('rObs').textContent     = '';
   afficherRemplace(h.remplace);
+  majBoutonEnvoyer();
   message('Reçu ' + h.num + ' rechargé.');
 }
 
@@ -739,7 +741,7 @@ function chargerReglagesUI(){
   document.getElementById('pAdresse2').value = prat.adresse2;
   document.getElementById('pService').value = prat.service;
   document.getElementById('pTarif').value  = prat.tarif;
-  document.getElementById('pAuto').checked = prat.autoPartage !== false;
+  document.getElementById('pAuto').checked = prat.autoPartage === true;
 }
 function sauverReglages(){
   prat.nom    = document.getElementById('pNom').value.trim();
@@ -1058,6 +1060,16 @@ function envoyerRecu(auto){
   if (imagesPretes()) partagerRecu(auto);                   // chemin synchrone (le plus fiable sur iOS)
   else attendreImages().then(() => partagerRecu(auto));
 }
+
+/* Le bouton Envoyer affiche le client et le numéro du reçu à l'écran (évite d'envoyer le mauvais reçu) */
+function majBoutonEnvoyer(){
+  const d = lireRecu();
+  document.getElementById('btnEnvoyer').textContent =
+    (d.num && d.num !== '—' && d.client && d.client !== '—')
+      ? '📤 Envoyer le reçu de ' + d.client + ' (' + d.num + ')'
+      : '📤 Envoyer le reçu (PDF)';
+}
+['rNum', 'rClient'].forEach(id => document.getElementById(id).addEventListener('input', majBoutonEnvoyer));
 
 /* ================= INIT ================= */
 afficherImages();
